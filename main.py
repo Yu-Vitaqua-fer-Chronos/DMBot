@@ -1,5 +1,10 @@
+from os import environ
 from json import load
 from datetime import datetime, timedelta
+
+environ['HATA_CACHE_PRESENCE'] = 'False'
+environ['HATA_CACHE_USERS'] = 'False'
+environ['HATA_MESSAGE_CACHE_SIZE'] = '0'
 
 from hata import Client, Channel
 from scarletio import Cycler, sleep
@@ -9,7 +14,6 @@ with open('config.json') as f:
 
 DMBot = Client(token=token)
 
-# Variables
 blacklist = [
   1091818442191028386
 ]
@@ -19,15 +23,6 @@ blacklist = [Channel.precreate(c) for c in blacklist]
 loaded_channels = {}
 
 cycler = None
-
-# Basic structure
-'''
-{
-  channelID: {
-    last_msg: <dt>,
-  }
-}
-'''
 
 def check_blacklist(channel):
   if channel in blacklist:
@@ -55,8 +50,10 @@ def clear_loaded_list(_):
 def load_channel(channel):
   if channel.is_in_group_textual():
     loaded_channels[channel.id] = {
-      'last_msg': datetime.now() - timedelta(minutes=10),
+      'last_msg': (datetime.now() - timedelta(hours=1)),
     }
+
+  return loaded_channels[channel.id]
 
 
 @DMBot.events
@@ -69,11 +66,6 @@ async def ready(client):
     cycler = Cycler(DMBot.loop, 30, clear_loaded_list)
 
 @DMBot.events
-async def channel_delete(client, channel):
-  if loaded_channels.get(channel.id, False):
-    del loaded_channels[channel.id]
-
-@DMBot.events
 async def message_create(client, message):
   if message.author.bot or check_blacklist(message.channel):
     return
@@ -83,15 +75,14 @@ async def message_create(client, message):
   if loaded_channel == False:
     loaded_channel = load_channel(message.channel)
 
-  if loaded_channel:
-    # TODO: Work on allowing customisable time outs
-    if (datetime.now() - loaded_channel['last_msg']).total_seconds() >= 300:
-      loaded_channels[message.channel.id]['last_msg'] = datetime.now()
+  # TODO: Work on allowing customisable time outs
+  if (datetime.now() - loaded_channel['last_msg']).total_seconds() >= 300:
+    loaded_channels[message.channel.id]['last_msg'] = datetime.now()
 
-      if not getattr(message, 'content', '').startswith('-'):
-        ping_message = await client.message_create(message.channel, '@everyone')
-        await sleep(2)
-        await client.message_delete(ping_message)
+    if not getattr(message, 'content', '').startswith('-'):
+      ping_message = await client.message_create(message.channel, '@everyone')
+      await sleep(2)
+      await client.message_delete(ping_message)
 
   loaded_channels[message.channel.id]['last_msg'] = datetime.now()
 
