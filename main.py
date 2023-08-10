@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 environ['HATA_CACHE_PRESENCE'] = 'False'
 environ['HATA_CACHE_USERS'] = 'False'
 environ['HATA_MESSAGE_CACHE_SIZE'] = '0'
+environ['HATA_DOCS_ENABLED'] = 'False'
 
 from hata import Client, Channel
 from scarletio import Cycler, sleep
@@ -14,9 +15,7 @@ with open('config.json') as f:
 
 DMBot = Client(token=token)
 
-blacklist = [
-  1091818442191028386
-]
+blacklist = []
 
 blacklist = [Channel.precreate(c) for c in blacklist]
 
