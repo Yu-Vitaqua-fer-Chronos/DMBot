@@ -7,13 +7,20 @@ environ['HATA_CACHE_USERS'] = 'False'
 environ['HATA_MESSAGE_CACHE_SIZE'] = '0'
 environ['HATA_DOCS_ENABLED'] = 'False'
 
-from hata import Client, Channel
+from hata import Client, Channel, IntentFlag
 from scarletio import Cycler, sleep
 
 with open('config.json') as f:
   token = load(f)['token']
 
-DMBot = Client(token=token)
+DMBot = Client(
+        token=token,
+        intents = IntentFlag().update_by_keys(
+            guild_users = False,
+            guild_presences = False,
+            message_content = False,
+            ),
+        )
 
 blacklist = []
 
@@ -41,8 +48,8 @@ def check_blacklist(channel):
 
 def clear_loaded_list(_):
   now = datetime.now()
-
-  for channel in loaded_channels:
+  
+  for channel in loaded_channels.copy():
     if (now - loaded_channels[channel]['last_msg']).total_seconds() >= 300:
       del loaded_channels[channel]
 
@@ -78,10 +85,10 @@ async def message_create(client, message):
   if (datetime.now() - loaded_channel['last_msg']).total_seconds() >= 300:
     loaded_channels[message.channel.id]['last_msg'] = datetime.now()
 
-    if not getattr(message, 'content', '').startswith('-'):
-      ping_message = await client.message_create(message.channel, '@everyone')
-      await sleep(2)
-      await client.message_delete(ping_message)
+    # if not getattr(message, 'content', '').startswith('-'):
+    ping_message = await client.message_create(message.channel, '@everyone\n"*boobs*" - Az')
+    await sleep(2)
+    await client.message_delete(ping_message)
 
   loaded_channels[message.channel.id]['last_msg'] = datetime.now()
 
